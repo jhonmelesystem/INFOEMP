@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfoEmp</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #1a1733;
+            color: white;
+            font-family: system-ui, sans-serif;
+            min-height: 100vh;
+        }
+
+        .auth-container {
+            max-width: 420px;
+            margin: 120px auto;
+            background: #2a2654;
+            border: 3px solid #e11d48;
+            border-radius: 16px;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .title { font-size: 1.8rem; font-weight: bold; margin-bottom: 30px; }
+        .input-group { margin-bottom: 18px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 6px; color: #cbd5e1; }
+        .input-field {
+            width: 100%;
+            background: #1f1b4b;
+            border: 1px solid #64748b;
+            color: white;
+            padding: 14px;
+            border-radius: 6px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-primary { background: #1e40af; color: white; }
+        .btn-secondary { background: #334155; color: white; }
+
+        #main-page { display: none; }
+        .header {
+            background-color: #1f1b4b;
+            border-bottom: 4px solid #e11d48;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toolbar {
+            background-color: #2a2654;
+            padding: 15px 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            border-bottom: 3px solid #e11d48;
+        }
+
+        .search-box {
+            background-color: #d1d5db;
+            color: black;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .btn-small {
+            padding: 10px 22px;
+            border: 1px solid #64748b;
+            background-color: #2a2654;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .table-container {
+            background-color: #2a2654;
+            margin: 20px 30px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { background-color: #f3f4f6; color: black; padding: 14px 20px; text-align: left; }
+        td { padding: 14px 20px; border-bottom: 1px solid #4b5563; cursor: pointer; }
+        tr:hover { background-color: #374151; }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #2a2654;
+            width: 90%;
+            max-width: 520px;
+            border-radius: 8px;
+        }
+
+        .input-field { 
+            width: 100%; 
+            background: #1f1b4b; 
+            border: 1px solid #64748b; 
+            color: white; 
+            padding: 12px 16px; 
+            border-radius: 4px; 
+            margin-top: 6px; 
+        }
+
+        /* Vista Compartida - SOLO INFORMACIÓN */
+        #share-page { 
+            display: none; 
+            min-height: 100vh; 
+            align-items: center; 
+            justify-content: center; 
+            background: #1a1733; 
+        }
+        .share-view {
+            background: #2a2654;
+            max-width: 620px;
+            width: 90%;
+            border-radius: 12px;
+            border: 3px solid #e11d48;
+            overflow: hidden;
+        }
+        .share-header { 
+            background: #1f1b4b; 
+            padding: 30px; 
+            text-align: center; 
+        }
+        .share-body { 
+            padding: 35px; 
+            line-height: 2.6; 
+            font-size: 1.2rem; 
+        }
+        .share-footer { 
+            padding: 20px; 
+            text-align: center; 
+            background: #1f1b4b; 
+        }
+
+        .custom-alert {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2a2654;
+            border: 2px solid #22c55e;
+            border-radius: 10px;
+            padding: 16px 24px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            z-index: 2000;
+            max-width: 90%;
+            animation: slideDown 0.4s ease;
+        }
+        .custom-alert.error { border-color: #ef4444; }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translate(-50%, -30px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN -->
+    <div id="login-screen">
+        <div class="auth-container">
+            <h1 class="title">INICIAR SESION</h1>
+            <div class="input-group"><label>USUARIO</label><input id="login-user" type="text" class="input-field"></div>
+            <div class="input-group"><label>CONTRASEÑA</label><input id="login-pass" type="password" class="input-field"></div>
+            <div style="text-align:left; margin:10px 0;">
+                <input type="checkbox" id="remember-me" style="margin-right:8px;">
+                <label for="remember-me">Recordar sesión</label>
+            </div>
+            <button onclick="login()" class="btn btn-primary">ENTRAR</button>
+            <button onclick="showRegister()" class="btn btn-secondary">REGISTRARSE</button>
+        </div>
+    </div>
+
+    <!-- REGISTRO -->
+    <div id="register-screen" style="display:none;">
+        <div class="auth-container">
+            <h1 class="title">REGISTRAR</h1>
+            <div class="input-group"><label>Nombre Completo</label><input id="reg-name" type="text" class="input-field"></div>
+            <div class="input-group"><label>Cargo</label><input id="reg-cargo" type="text" class="input-field"></div>
+            <div class="input-group"><label>Usuario</label><input id="reg-user" type="text" class="input-field"></div>
+            <div class="input-group"><label>Contraseña</label><input id="reg-pass" type="password" class="input-field"></div>
+            <div class="input-group"><label>Empresa</label><input id="reg-empresa" type="text" class="input-field" value="ARIAS MOTORS"></div>
+            <button onclick="registerUser()" class="btn btn-primary">Registrar</button>
+            <button onclick="showLogin()" class="btn btn-secondary">Atras</button>
+        </div>
+    </div>
+
+    <!-- PÁGINA PRINCIPAL -->
+    <div id="main-page">
+        <div class="header">
+            <h1 class="text-4xl font-bold">InfoEmp - <span id="current-user"></span></h1>
+            <button onclick="logout()" style="background:#b91c1c; padding:8px 16px; border:none; border-radius:6px; color:white;">Cerrar Sesión</button>
+        </div>
+
+        <div class="toolbar">
+            <input type="text" id="search-input" placeholder="Buscar" class="search-box" onkeyup="searchTable()">
+            <div style="margin-left: auto; display: flex; gap: 10px;">
+                <button onclick="filterTable()" class="btn-small">Filtrar</button>
+                <button onclick="showAddModal()" class="btn-small btn-add">Agregar</button>
+                <button onclick="deleteSelected()" class="btn-small" style="background-color: #b91c1c;">Quitar</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>NOMBRE COMPLETO</th>
+                        <th>NO. DOCUMENTO</th>
+                        <th>NO. EMPLEADO</th>
+                        <th style="width:70px; text-align:center;">
+                            <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="employee-table"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- VISTA COMPARTIDA - SOLO INFORMACIÓN -->
+    <div id="share-page">
+        <div class="share-view">
+            <div class="share-header">
+                <h1 style="font-size:2.2rem;">INFORMACION DE EMPLEADO</h1>
+            </div>
+            <div id="share-body" class="share-body"></div>
+            <div class="share-footer">
+                <button onclick="window.close()" style="padding:12px 40px; background:#64748b; color:white; border:none; border-radius:6px;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div style="padding:20px 25px; border-bottom:1px solid #4b5563;">
+                <h2 id="modal-title" style="font-size:1.5rem; font-weight:bold;">Agregar Empleado</h2>
+            </div>
+            <div style="padding:25px;">
+                <div class="input-group"><label>Nombre Completo</label><input id="name-input" type="text" class="input-field"></div>
+                <div class="input-group"><label>No. Documento</label><input id="doc-input" type="text" class="input-field"></div>
+                <div class="input-group"><label>No. Empleado</label><input id="emp-input" type="text" class="input-field"></div>
+                <div class="input-group"><label>Celular</label><input id="cel-input" type="text" class="input-field"></div>
+                <div class="input-group"><label>Lugar de Trabajo</label><input id="work-input" type="text" class="input-field"></div>
+                <div class="input-group"><label>Teléfono de la Empresa</label><input id="company-phone-input" type="text" class="input-field"></div>
+            </div>
+            <div style="padding:15px 25px; border-top:1px solid #4b5563; display:flex; gap:10px; flex-wrap:wrap;">
+                <button onclick="closeModal()" style="flex:1;padding:12px;background:#64748b;border:none;border-radius:4px;color:white;">Cancelar</button>
+                <button onclick="saveEmployee()" style="flex:1;padding:12px;background:#1e40af;border:none;border-radius:4px;color:white;font-weight:500;">Guardar</button>
+                <button onclick="generateShareLink()" id="ver-btn" style="flex:1;padding:12px;background:#22c55e;border:none;border-radius:4px;color:black;font-weight:600; display:none;">👁 Ver</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let employees = [];
+        let editingId = null;
+
+        function showCustomAlert(message, type = 'success') {
+            const alertBox = document.createElement('div');
+            alertBox.className = `custom-alert ${type === 'error' ? 'error' : ''}`;
+            alertBox.innerHTML = `<i class="fas ${type === 'error' ? 'fa-times-circle' : 'fa-check-circle'}" style="margin-right:10px;"></i> ${message}`;
+            document.body.appendChild(alertBox);
+            setTimeout(() => alertBox.remove(), 3000);
+        }
+
+        function showLogin() {
+            document.getElementById('register-screen').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'block';
+        }
+
+        function showRegister() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('register-screen').style.display = 'block';
+        }
+
+        function registerUser() {
+            const name = document.getElementById('reg-name').value.trim();
+            const cargo = document.getElementById('reg-cargo').value.trim();
+            const user = document.getElementById('reg-user').value.trim();
+            const pass = document.getElementById('reg-pass').value.trim();
+            const empresa = document.getElementById('reg-empresa').value.trim();
+
+            if (!name || !user || !pass) return showCustomAlert("Nombre, Usuario y Contraseña son obligatorios", "error");
+
+            let users = JSON.parse(localStorage.getItem('infoemp_users') || '[]');
+            if (users.find(u => u.usuario === user)) return showCustomAlert("Este usuario ya existe", "error");
+
+            users.push({ nombre: name, cargo, usuario: user, contraseña: pass, empresa: empresa || "ARIAS MOTORS" });
+            localStorage.setItem('infoemp_users', JSON.stringify(users));
+            showCustomAlert("✅ Usuario registrado correctamente");
+            showLogin();
+        }
+
+        function login() {
+            const userInput = document.getElementById('login-user').value.trim();
+            const passInput = document.getElementById('login-pass').value.trim();
+            const remember = document.getElementById('remember-me').checked;
+
+            const users = JSON.parse(localStorage.getItem('infoemp_users') || '[]');
+            const user = users.find(u => u.usuario === userInput && u.contraseña === passInput);
+
+            if (user) {
+                currentUser = user;
+                if (remember) localStorage.setItem('infoemp_current_user', JSON.stringify(user));
+                
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-page').style.display = 'block';
+                document.getElementById('current-user').textContent = user.usuario;
+                loadEmployees();
+            } else {
+                showCustomAlert("Usuario o contraseña incorrectos", "error");
+            }
+        }
+
+        function logout() {
+            if (confirm("¿Cerrar sesión?")) {
+                localStorage.removeItem('infoemp_current_user');
+                currentUser = null;
+                document.getElementById('main-page').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'block';
+            }
+        }
+
+        function getUserStorageKey() {
+            return `infoemp_employees_${currentUser ? currentUser.usuario : 'public'}`;
+        }
+
+        function loadEmployees() {
+            if (!currentUser) return;
+            const key = getUserStorageKey();
+            const saved = localStorage.getItem(key);
+            employees = saved ? JSON.parse(saved) : [];
+            renderTable();
+        }
+
+        function saveEmployees() {
+            if (!currentUser) return;
+            localStorage.setItem(getUserStorageKey(), JSON.stringify(employees));
+        }
+
+        function renderTable(data = null) {
+            const tbody = document.getElementById('employee-table');
+            tbody.innerHTML = '';
+            const toShow = data || employees;
+            if (toShow.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:80px; color:#94a3b8;">No hay empleados aún.<br>Presiona "Agregar"</td></tr>`;
+                return;
+            }
+            toShow.forEach(emp => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td onclick="showDetail(${emp.id})">${emp.name}</td>
+                    <td onclick="showDetail(${emp.id})">${emp.document}</td>
+                    <td onclick="showDetail(${emp.id})">${emp.employeeNumber}</td>
+                    <td style="text-align:center;" onclick="event.stopImmediatePropagation()">
+                        <input type="checkbox" data-id="${emp.id}" style="width:18px;height:18px;">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function showDetail(id) {
+            const emp = employees.find(e => e.id === id);
+            if (!emp) return;
+            editingId = id;
+            document.getElementById('modal-title').textContent = "Editar Empleado";
+            document.getElementById('name-input').value = emp.name;
+            document.getElementById('doc-input').value = emp.document;
+            document.getElementById('emp-input').value = emp.employeeNumber;
+            document.getElementById('cel-input').value = emp.celular || '';
+            document.getElementById('work-input').value = emp.lugarTrabajo || '';
+            document.getElementById('company-phone-input').value = emp.telefonoEmpresa || '';
+            document.getElementById('ver-btn').style.display = 'block';
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function showAddModal() {
+            editingId = null;
+            document.getElementById('modal-title').textContent = "Agregar Empleado";
+            document.getElementById('name-input').value = '';
+            document.getElementById('doc-input').value = '';
+            document.getElementById('emp-input').value = '';
+            document.getElementById('cel-input').value = '';
+            document.getElementById('work-input').value = '';
+            document.getElementById('company-phone-input').value = '';
+            document.getElementById('ver-btn').style.display = 'none';
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function saveEmployee() {
+            const name = document.getElementById('name-input').value.trim();
+            const doc = document.getElementById('doc-input').value.trim();
+            const empNum = document.getElementById('emp-input').value.trim();
+            const celular = document.getElementById('cel-input').value.trim();
+            const lugar = document.getElementById('work-input').value.trim();
+            const telEmpresa = document.getElementById('company-phone-input').value.trim();
+
+            if (!name || !doc || !empNum) return showCustomAlert("Nombre, Documento y No. Empleado son obligatorios", "error");
+
+            if (editingId) {
+                const emp = employees.find(e => e.id === editingId);
+                if (emp) {
+                    emp.name = name.toUpperCase();
+                    emp.document = doc;
+                    emp.employeeNumber = empNum;
+                    emp.celular = celular || "N/A";
+                    emp.lugarTrabajo = lugar || "N/A";
+                    emp.telefonoEmpresa = telEmpresa || "N/A";
+                }
+            } else {
+                employees.unshift({
+                    id: Date.now(),
+                    name: name.toUpperCase(),
+                    document: doc,
+                    employeeNumber: empNum,
+                    celular: celular || "N/A",
+                    lugarTrabajo: lugar || "N/A",
+                    telefonoEmpresa: telEmpresa || "N/A"
+                });
+            }
+
+            saveEmployees();
+            renderTable();
+            closeModal();
+            showCustomAlert(editingId ? "✅ Actualizado" : "✅ Agregado");
+        }
+
+        function generateShareLink() {
+            if (!editingId) return;
+            const emp = employees.find(e => e.id === editingId);
+            if (!emp) return;
+            const data = btoa(JSON.stringify(emp));
+            const link = `${window.location.origin}${window.location.pathname}#employee=${data}`;
+            navigator.clipboard.writeText(link).then(() => {
+                showCustomAlert("✅ Link copiado correctamente");
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        function deleteSelected() {
+            const checked = document.querySelectorAll('#employee-table input[type="checkbox"]:checked');
+            if (checked.length === 0) return showCustomAlert("Selecciona al menos un empleado", "error");
+            if (confirm(`¿Eliminar ${checked.length} empleado(s)?`)) {
+                const ids = Array.from(checked).map(cb => Number(cb.dataset.id));
+                employees = employees.filter(emp => !ids.includes(emp.id));
+                saveEmployees();
+                renderTable();
+            }
+        }
+
+        function toggleSelectAll() {
+            const checked = document.getElementById('select-all').checked;
+            document.querySelectorAll('#employee-table input[type="checkbox"]').forEach(cb => cb.checked = checked);
+        }
+
+        function searchTable() {
+            const term = document.getElementById('search-input').value.toLowerCase().trim();
+            if (!term) return renderTable();
+            const filtered = employees.filter(emp => 
+                emp.name.toLowerCase().includes(term) || 
+                emp.document.toLowerCase().includes(term) ||
+                emp.employeeNumber.toLowerCase().includes(term)
+            );
+            renderTable(filtered);
+        }
+
+        function filterTable() {
+            document.getElementById('search-input').focus();
+        }
+
+        // ==================== INICIO ====================
+        window.onload = () => {
+            const hash = window.location.hash;
+            
+            if (hash.includes('#employee=')) {
+                try {
+                    const data = hash.split('employee=')[1];
+                    const employee = JSON.parse(atob(data));
+                    
+                    // Mostrar SOLO la información del empleado
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('main-page').style.display = 'none';
+                    document.getElementById('share-page').style.display = 'flex';
+                    
+                    document.getElementById('share-body').innerHTML = `
+                        <p><strong>NOMBRE:</strong> ${employee.name}</p>
+                        <p><strong>NO. DE DOCUMENTO:</strong> ${employee.document}</p>
+                        <p><strong>NO. DE EMPLEADO:</strong> ${employee.employeeNumber}</p>
+                        <p><strong>CELULAR:</strong> ${employee.celular}</p>
+                        <p><strong>LUGAR DE TRABAJO:</strong> ${employee.lugarTrabajo}</p>
+                        <p><strong>TELEFONO DE LA EMPRESA:</strong> ${employee.telefonoEmpresa}</p>
+                    `;
+                } catch (e) {
+                    document.getElementById('login-screen').style.display = 'block';
+                }
+            } else {
+                document.getElementById('login-screen').style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html>
