@@ -5,7 +5,12 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
+// Reemplaza tu app.use(cors()) viejo por este bloque:
+app.use(cors({
+    origin: '*', // Permite que cualquier dispositivo se conecte
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Permite todos los métodos comunes
+    allowedHeaders: ['Content-Type', 'Authorization'] // ¡VITAL! Le da permiso al navegador de enviar el Token
+}));
 app.use(express.json());
 
 // Conexión a la base de datos de XAMPP

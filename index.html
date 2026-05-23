@@ -548,6 +548,9 @@ function generateShareLink() {
         window.onload = async () => {
             const hash = window.location.hash;
             
+            // Forzamos a la aplicación a leer el token guardado apenas abre la página
+            token = localStorage.getItem('infoemp_token') || sessionStorage.getItem('infoemp_token');
+            
             // Comprobación de Link Compartido Seguro
             if (hash.includes('#view=')) {
                 const id = hash.split('#view=')[1];
