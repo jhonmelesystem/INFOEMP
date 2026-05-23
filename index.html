@@ -96,8 +96,9 @@
 
         table { width: 100%; border-collapse: collapse; }
         th { background-color: #f3f4f6; color: black; padding: 14px 20px; text-align: left; }
-        td { padding: 14px 20px; border-bottom: 1px solid #4b5563; cursor: pointer; }
-        tr:hover { background-color: #374151; }
+        /* CORRECCIÓN VISUAL: Fondo oscuro coherente para celdas */
+        td { padding: 14px 20px; border-bottom: 1px solid #4b5563; background-color: #2a2654; color: white; cursor: pointer; }
+        tr:hover td { background-color: #374151; }
 
         .modal {
             position: fixed;
@@ -114,16 +115,6 @@
             width: 90%;
             max-width: 520px;
             border-radius: 8px;
-        }
-
-        .input-field { 
-            width: 100%; 
-            background: #1f1b4b; 
-            border: 1px solid #64748b; 
-            color: white; 
-            padding: 12px 16px; 
-            border-radius: 4px; 
-            margin-top: 6px; 
         }
 
         /* Vista Compartida - SOLO INFORMACIÓN */
@@ -184,7 +175,7 @@
     <!-- LOGIN -->
     <div id="login-screen">
         <div class="auth-container">
-            <h1 class="title">INICIAR SESION</h1>
+            <h1 class="title">INICIAR SESIÓN</h1>
             <div class="input-group"><label>USUARIO</label><input id="login-user" type="text" class="input-field"></div>
             <div class="input-group"><label>CONTRASEÑA</label><input id="login-pass" type="password" class="input-field"></div>
             <div style="text-align:left; margin:10px 0;">
@@ -206,7 +197,7 @@
             <div class="input-group"><label>Contraseña</label><input id="reg-pass" type="password" class="input-field"></div>
             <div class="input-group"><label>Empresa</label><input id="reg-empresa" type="text" class="input-field"></div>
             <button onclick="registerUser()" class="btn btn-primary">Registrar</button>
-            <button onclick="showLogin()" class="btn btn-secondary">Atras</button>
+            <button onclick="showLogin()" class="btn btn-secondary">Atrás</button>
         </div>
     </div>
 
@@ -214,7 +205,7 @@
     <div id="main-page">
         <div class="header">
             <h1 class="text-4xl font-bold">InfoEmp - <span id="current-user"></span></h1>
-            <button onclick="logout()" style="background:#b91c1c; padding:8px 16px; border:none; border-radius:6px; color:white;">Cerrar Sesión</button>
+            <button onclick="logout()" style="background:#b91c1c; padding:8px 16px; border:none; border-radius:6px; color:white; cursor:pointer;">Cerrar Sesión</button>
         </div>
 
         <div class="toolbar">
@@ -243,15 +234,15 @@
         </div>
     </div>
 
-    <!-- VISTA COMPARTIDA - SOLO INFORMACIÓN -->
+    <!-- VISTA COMPARTIDA -->
     <div id="share-page">
         <div class="share-view">
             <div class="share-header">
-                <h1 style="font-size:2.2rem;">INFORMACION DE EMPLEADO</h1>
+                <h1 style="font-size:2.2rem;">INFORMACIÓN DE EMPLEADO</h1>
             </div>
             <div id="share-body" class="share-body"></div>
             <div class="share-footer">
-                <button onclick="window.close()" style="padding:12px 40px; background:#64748b; color:white; border:none; border-radius:6px;">Cerrar</button>
+                <button onclick="closeShareView()" style="padding:12px 40px; background:#64748b; color:white; border:none; border-radius:6px; cursor:pointer;">Volver al Inicio</button>
             </div>
         </div>
     </div>
@@ -271,15 +262,16 @@
                 <div class="input-group"><label>Teléfono de la Empresa</label><input id="company-phone-input" type="text" class="input-field"></div>
             </div>
             <div style="padding:15px 25px; border-top:1px solid #4b5563; display:flex; gap:10px; flex-wrap:wrap;">
-                <button onclick="closeModal()" style="flex:1;padding:12px;background:#64748b;border:none;border-radius:4px;color:white;">Cancelar</button>
-                <button onclick="saveEmployee()" style="flex:1;padding:12px;background:#1e40af;border:none;border-radius:4px;color:white;font-weight:500;">Guardar</button>
-                <button onclick="generateShareLink()" id="ver-btn" style="flex:1;padding:12px;background:#22c55e;border:none;border-radius:4px;color:black;font-weight:600; display:none;">👁 Ver</button>
+                <button onclick="closeModal()" style="flex:1;padding:12px;background:#64748b;border:none;border-radius:4px;color:white;cursor:pointer;">Cancelar</button>
+                <button onclick="saveEmployee()" style="flex:1;padding:12px;background:#1e40af;border:none;border-radius:4px;color:white;font-weight:500;cursor:pointer;">Guardar</button>
+                <button onclick="generateShareLink()" id="ver-btn" style="flex:1;padding:12px;background:#22c55e;border:none;border-radius:4px;color:black;font-weight:600; display:none;cursor:pointer;">🔗 Copiar Link</button>
             </div>
         </div>
     </div>
 
     <script>
-        let currentUser = null;
+        const API_URL = 'http://localhost:3000/api';
+        let token = localStorage.getItem('infoemp_token') || sessionStorage.getItem('infoemp_token');
         let employees = [];
         let editingId = null;
 
@@ -301,69 +293,103 @@
             document.getElementById('register-screen').style.display = 'block';
         }
 
-        function registerUser() {
-            const name = document.getElementById('reg-name').value.trim();
-            const cargo = document.getElementById('reg-cargo').value.trim();
-            const user = document.getElementById('reg-user').value.trim();
-            const pass = document.getElementById('reg-pass').value.trim();
-            const empresa = document.getElementById('reg-empresa').value.trim();
+        async function registerUser() {
+    const nombre = document.getElementById('reg-name').value.trim();
+    const cargo = document.getElementById('reg-cargo').value.trim();
+    const usuario = document.getElementById('reg-user').value.trim();
+    const contrasena = document.getElementById('reg-pass').value.trim();
+    const empresa = document.getElementById('reg-empresa').value.trim();
 
-            if (!name || !user || !pass) return showCustomAlert("Nombre, Usuario y Contraseña son obligatorios", "error");
+    if (!nombre || !usuario || !contrasena) {
+        return showCustomAlert("Nombre, Usuario y Contraseña son obligatorios", "error");
+    }
 
-            let users = JSON.parse(localStorage.getItem('infoemp_users') || '[]');
-            if (users.find(u => u.usuario === user)) return showCustomAlert("Este usuario ya existe", "error");
+    const res = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // AQUÍ ESTÁ EL CAMBIO: Mapeamos tus variables a lo que el servidor espera recibir
+        body: JSON.stringify({ 
+            nombre, 
+            cargo, 
+            username: usuario,    // <-- 'usuario' viaja bautizado como 'username'
+            password: contrasena, // <-- 'contrasena' viaja bautizado como 'password'
+            empresa 
+        })
+    });
+    const data = await res.json();
 
-            users.push({ nombre: name, cargo, usuario: user, contraseña: pass, empresa: empresa || "ARIAS MOTORS" });
-            localStorage.setItem('infoemp_users', JSON.stringify(users));
-            showCustomAlert("✅ Usuario registrado correctamente");
-            showLogin();
+    if (res.ok) {
+        showCustomAlert("✅ Usuario registrado correctamente");
+        showLogin();
+    } else {
+        showCustomAlert(data.error, "error");
+    }
+}
+
+async function login() {
+    const usuario = document.getElementById('login-user').value.trim();
+    const contrasena = document.getElementById('login-pass').value.trim();
+    const remember = document.getElementById('remember-me').checked;
+
+    if (!usuario || !contrasena) {
+        return showCustomAlert("Por favor, llena todos los campos", "error");
+    }
+
+    const res = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // AQUÍ EL CAMBIO: Traducimos para el servidor
+        body: JSON.stringify({ 
+            username: usuario,    // <-- Se envía como 'username'
+            password: contrasena  // <-- Se envía como 'password'
+        })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+        token = data.token;
+        if (remember) {
+            localStorage.setItem('infoemp_token', token);
+            localStorage.setItem('infoemp_username', usuario); // Usamos 'usuario' directamente
+        } else {
+            sessionStorage.setItem('infoemp_token', token);
+            sessionStorage.setItem('infoemp_username', usuario); // Usamos 'usuario' directamente
         }
+        enterApp(usuario);
+    } else {
+        showCustomAlert(data.error, "error");
+    }
+}
 
-        function login() {
-            const userInput = document.getElementById('login-user').value.trim();
-            const passInput = document.getElementById('login-pass').value.trim();
-            const remember = document.getElementById('remember-me').checked;
-
-            const users = JSON.parse(localStorage.getItem('infoemp_users') || '[]');
-            const user = users.find(u => u.usuario === userInput && u.contraseña === passInput);
-
-            if (user) {
-                currentUser = user;
-                if (remember) localStorage.setItem('infoemp_current_user', JSON.stringify(user));
-                
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-page').style.display = 'block';
-                document.getElementById('current-user').textContent = user.usuario;
-                loadEmployees();
-            } else {
-                showCustomAlert("Usuario o contraseña incorrectos", "error");
-            }
+        function enterApp(username) {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-page').style.display = 'block';
+            document.getElementById('current-user').textContent = username;
+            loadEmployees();
         }
 
         function logout() {
             if (confirm("¿Cerrar sesión?")) {
-                localStorage.removeItem('infoemp_current_user');
-                currentUser = null;
+                localStorage.removeItem('infoemp_token');
+                localStorage.removeItem('infoemp_username');
+                sessionStorage.removeItem('infoemp_token');
+                sessionStorage.removeItem('infoemp_username');
+                token = null;
                 document.getElementById('main-page').style.display = 'none';
                 document.getElementById('login-screen').style.display = 'block';
             }
         }
 
-        function getUserStorageKey() {
-            return `infoemp_employees_${currentUser ? currentUser.usuario : 'public'}`;
-        }
-
-        function loadEmployees() {
-            if (!currentUser) return;
-            const key = getUserStorageKey();
-            const saved = localStorage.getItem(key);
-            employees = saved ? JSON.parse(saved) : [];
-            renderTable();
-        }
-
-        function saveEmployees() {
-            if (!currentUser) return;
-            localStorage.setItem(getUserStorageKey(), JSON.stringify(employees));
+        async function loadEmployees() {
+            const res = await fetch(`${API_URL}/employees`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                employees = await res.json();
+                renderTable();
+            } else if (res.status === 401 || res.status === 403) {
+                logout();
+            }
         }
 
         function renderTable(data = null) {
@@ -379,7 +405,7 @@
                 tr.innerHTML = `
                     <td onclick="showDetail(${emp.id})">${emp.name}</td>
                     <td onclick="showDetail(${emp.id})">${emp.document}</td>
-                    <td onclick="showDetail(${emp.id})">${emp.employeeNumber}</td>
+                    <td onclick="showDetail(${emp.id})">${emp.employee_number || emp.employeeNumber}</td>
                     <td style="text-align:center;" onclick="event.stopImmediatePropagation()">
                         <input type="checkbox" data-id="${emp.id}" style="width:18px;height:18px;">
                     </td>
@@ -395,10 +421,10 @@
             document.getElementById('modal-title').textContent = "Editar Empleado";
             document.getElementById('name-input').value = emp.name;
             document.getElementById('doc-input').value = emp.document;
-            document.getElementById('emp-input').value = emp.employeeNumber;
+            document.getElementById('emp-input').value = emp.employee_number || emp.employeeNumber;
             document.getElementById('cel-input').value = emp.celular || '';
-            document.getElementById('work-input').value = emp.lugarTrabajo || '';
-            document.getElementById('company-phone-input').value = emp.telefonoEmpresa || '';
+            document.getElementById('work-input').value = emp.lugar_trabajo || emp.lugarTrabajo || '';
+            document.getElementById('company-phone-input').value = emp.telefono_empresa || emp.telefonoEmpresa || '';
             document.getElementById('ver-btn').style.display = 'block';
             document.getElementById('modal').style.display = 'flex';
         }
@@ -416,67 +442,80 @@
             document.getElementById('modal').style.display = 'flex';
         }
 
-        function saveEmployee() {
+        async function saveEmployee() {
             const name = document.getElementById('name-input').value.trim();
-            const doc = document.getElementById('doc-input').value.trim();
-            const empNum = document.getElementById('emp-input').value.trim();
+            const documentVal = document.getElementById('doc-input').value.trim();
+            const employeeNumber = document.getElementById('emp-input').value.trim();
             const celular = document.getElementById('cel-input').value.trim();
-            const lugar = document.getElementById('work-input').value.trim();
-            const telEmpresa = document.getElementById('company-phone-input').value.trim();
+            const lugarTrabajo = document.getElementById('work-input').value.trim();
+            const telefonoEmpresa = document.getElementById('company-phone-input').value.trim();
 
-            if (!name || !doc || !empNum) return showCustomAlert("Nombre, Documento y No. Empleado son obligatorios", "error");
+            if (!name || !documentVal || !employeeNumber) return showCustomAlert("Nombre, Documento y No. Empleado son obligatorios", "error");
 
+            const payload = { name, document: documentVal, employeeNumber, celular, lugarTrabajo, telefonoEmpresa };
+            
+            let res;
             if (editingId) {
-                const emp = employees.find(e => e.id === editingId);
-                if (emp) {
-                    emp.name = name.toUpperCase();
-                    emp.document = doc;
-                    emp.employeeNumber = empNum;
-                    emp.celular = celular || "N/A";
-                    emp.lugarTrabajo = lugar || "N/A";
-                    emp.telefonoEmpresa = telEmpresa || "N/A";
-                }
+                res = await fetch(`${API_URL}/employees/${editingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
             } else {
-                employees.unshift({
-                    id: Date.now(),
-                    name: name.toUpperCase(),
-                    document: doc,
-                    employeeNumber: empNum,
-                    celular: celular || "N/A",
-                    lugarTrabajo: lugar || "N/A",
-                    telefonoEmpresa: telEmpresa || "N/A"
+                res = await fetch(`${API_URL}/employees`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
                 });
             }
 
-            saveEmployees();
-            renderTable();
-            closeModal();
-            showCustomAlert(editingId ? "✅ Actualizado" : "✅ Agregado");
+            if (res.ok) {
+                loadEmployees();
+                closeModal();
+                showCustomAlert(editingId ? "✅ Actualizado correctamente" : "✅ Agregado correctamente");
+            } else {
+                showCustomAlert("Error al procesar la solicitud", "error");
+            }
         }
 
-        function generateShareLink() {
-            if (!editingId) return;
-            const emp = employees.find(e => e.id === editingId);
-            if (!emp) return;
-            const data = btoa(JSON.stringify(emp));
-            const link = `${window.location.origin}${window.location.pathname}#employee=${data}`;
-            navigator.clipboard.writeText(link).then(() => {
-                showCustomAlert("✅ Link copiado correctamente");
-            });
-        }
+function generateShareLink() {
+    if (!editingId) return;
+    
+    // Genera el enlace apuntando al sistema de hash que ya tienes programado
+    const link = `${window.location.origin}${window.location.pathname}#view=${editingId}`;
+    
+    navigator.clipboard.writeText(link).then(() => {
+        showCustomAlert("✅ Enlace seguro copiado al portapapeles");
+    }).catch(err => {
+        console.error("Error al copiar el enlace: ", err);
+        // Alternativa por si el navegador bloquea el portapapeles automáticamente
+        alert(`Copia este enlace manualmente:\n${link}`);
+    });
+}
 
         function closeModal() {
             document.getElementById('modal').style.display = 'none';
         }
 
-        function deleteSelected() {
+        async function deleteSelected() {
             const checked = document.querySelectorAll('#employee-table input[type="checkbox"]:checked');
             if (checked.length === 0) return showCustomAlert("Selecciona al menos un empleado", "error");
+            
             if (confirm(`¿Eliminar ${checked.length} empleado(s)?`)) {
                 const ids = Array.from(checked).map(cb => Number(cb.dataset.id));
-                employees = employees.filter(emp => !ids.includes(emp.id));
-                saveEmployees();
-                renderTable();
+                const res = await fetch(`${API_URL}/employees/delete-multiple`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ ids })
+                });
+
+                if (res.ok) {
+                    loadEmployees();
+                    document.getElementById('select-all').checked = false;
+                    showCustomAlert("🗑️ Empleados eliminados");
+                } else {
+                    showCustomAlert("Error al eliminar", "error");
+                }
             }
         }
 
@@ -491,7 +530,7 @@
             const filtered = employees.filter(emp => 
                 emp.name.toLowerCase().includes(term) || 
                 emp.document.toLowerCase().includes(term) ||
-                emp.employeeNumber.toLowerCase().includes(term)
+                (emp.employee_number || emp.employeeNumber).toLowerCase().includes(term)
             );
             renderTable(filtered);
         }
@@ -500,16 +539,23 @@
             document.getElementById('search-input').focus();
         }
 
-        // ==================== INICIO ====================
-        window.onload = () => {
+        function closeShareView() {
+            window.location.hash = '';
+            window.location.reload();
+        }
+
+        // ==================== FLUJO DE ARRANQUE SEGURO ====================
+        window.onload = async () => {
             const hash = window.location.hash;
             
-            if (hash.includes('#employee=')) {
+            // Comprobación de Link Compartido Seguro
+            if (hash.includes('#view=')) {
+                const id = hash.split('#view=')[1];
                 try {
-                    const data = hash.split('employee=')[1];
-                    const employee = JSON.parse(atob(data));
+                    const res = await fetch(`${API_URL}/share/employee/${id}`);
+                    if (!res.ok) throw new Error();
+                    const employee = await res.json();
                     
-                    // Mostrar SOLO la información del empleado
                     document.getElementById('login-screen').style.display = 'none';
                     document.getElementById('main-page').style.display = 'none';
                     document.getElementById('share-page').style.display = 'flex';
@@ -517,16 +563,23 @@
                     document.getElementById('share-body').innerHTML = `
                         <p><strong>NOMBRE:</strong> ${employee.name}</p>
                         <p><strong>NO. DE DOCUMENTO:</strong> ${employee.document}</p>
-                        <p><strong>NO. DE EMPLEADO:</strong> ${employee.employeeNumber}</p>
+                        <p><strong>NO. DE EMPLEADO:</strong> ${employee.employee_number}</p>
                         <p><strong>CELULAR:</strong> ${employee.celular}</p>
-                        <p><strong>LUGAR DE TRABAJO:</strong> ${employee.lugarTrabajo}</p>
-                        <p><strong>TELEFONO DE LA EMPRESA:</strong> ${employee.telefonoEmpresa}</p>
+                        <p><strong>LUGAR DE TRABAJO:</strong> ${employee.lugar_trabajo}</p>
+                        <p><strong>TELÉFONO DE LA EMPRESA:</strong> ${employee.telefono_empresa}</p>
                     `;
-                } catch (e) {
-                    document.getElementById('login-screen').style.display = 'block';
+                } catch {
+                    showCustomAlert("El enlace no existe o expiró", "error");
+                    showLogin();
                 }
             } else {
-                document.getElementById('login-screen').style.display = 'block';
+                // Comprobación de persistencia de sesión ("Recordar sesión") correcta
+                const savedUsername = localStorage.getItem('infoemp_username') || sessionStorage.getItem('infoemp_username');
+                if (token && savedUsername) {
+                    enterApp(savedUsername);
+                } else {
+                    showLogin();
+                }
             }
         };
     </script>
