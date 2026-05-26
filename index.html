@@ -51,7 +51,7 @@
         #main-page { display: none; }
         .header {
             background-color: #1f1b4b;
-            border-bottom: 4px solid #e11d48;
+            border-bottom: 3px solid #e11d48;
             padding: 20px 30px;
             display: flex;
             justify-content: space-between;
@@ -85,6 +85,43 @@
             color: white;
             border-radius: 4px;
             cursor: pointer;
+        }
+
+        .btn-small.btn-add {
+            background-color: rgb(0, 95, 0);
+        }
+
+        .btn-small.btn-add:hover {
+            background-color: rgb(0, 128, 0);
+        }
+
+        .btn-small.btn-filter {
+            background-color: #929000;
+        }
+
+        .btn-small.btn-filter:hover {
+            background-color: #929000cc;
+        }
+
+        .btn-small.btn-delete {
+            background-color: #b91c1c;
+        }
+
+        .btn-small.btn-delete:hover {
+            background-color: #b91c1ccc;
+        }
+
+        .btn-exit {
+            background-color: #b91c1c;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .btn-exit:hover {
+            background-color: #b91c1ccc;
         }
 
         .table-container {
@@ -163,13 +200,28 @@
             max-width: 90%;
             animation: slideDown 0.4s ease;
         }
+
         .custom-alert.error { border-color: #ef4444; }
         @keyframes slideDown {
             from { opacity: 0; transform: translate(-50%, -30px); }
             to { opacity: 1; transform: translate(-50%, 0); }
         }
+
+        @media screen and (max-width: 480px) {
+  .table-container {
+    font-size: 10px;  
+  }
+  div .header {
+    font-size: 10px;
+  }
+  div .toolbar button {
+    margin-left: 1px;
+    margin-right: 31px;
+  }
+}
     </style>
 </head>
+
 <body>
 
     <!-- LOGIN -->
@@ -205,15 +257,15 @@
     <div id="main-page">
         <div class="header">
             <h1 class="text-4xl font-bold">InfoEmp - <span id="current-user"></span></h1>
-            <button onclick="logout()" style="background:#b91c1c; padding:8px 16px; border:none; border-radius:6px; color:white; cursor:pointer;">Cerrar Sesión</button>
+            <button onclick="logout()" class="btn-exit">Cerrar Sesión</button>
         </div>
 
         <div class="toolbar">
             <input type="text" id="search-input" placeholder="Buscar" class="search-box" onkeyup="searchTable()">
             <div style="margin-left: auto; display: flex; gap: 10px;">
-                <button onclick="filterTable()" class="btn-small">Filtrar</button>
+                <button onclick="filterTable()" class="btn-small btn-filter">Filtrar</button>
                 <button onclick="showAddModal()" class="btn-small btn-add">Agregar</button>
-                <button onclick="deleteSelected()" class="btn-small" style="background-color: #b91c1c;">Quitar</button>
+                <button onclick="deleteSelected()" class="btn-small btn-delete">Quitar</button>
             </div>
         </div>
 
