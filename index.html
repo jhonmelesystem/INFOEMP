@@ -201,11 +201,6 @@
             animation: slideDown 0.4s ease;
         }
 
-        .toolbar-buttons {
-            display: flex; gap: 8%;
-            justify-content: flex-start;
-        }
-
         .custom-alert.error { border-color: #ef4444; }
         @keyframes slideDown {
             from { opacity: 0; transform: translate(-50%, -30px); }
@@ -213,16 +208,33 @@
         }
 
 /*IPHONE X Y XS*/
-                @media screen and (min-width: 375px) and (max-width: 428px) {
+                @media screen and (max-width: 768px){
   .table-container {
-    font-size: 50%;  
+    font-size: 7px;  
   }
   div .header {
     font-size: 60%;
   }
-  div .toolbar-buttons {
-   display: flex; gap: 12.5%;
+  .toolbar {
+   display: flex;
+   justify-content: center;
   }
+}
+
+/*ORDENADOR*/
+@media screen and (min-width: 1080px) {
+    .toolbar {
+        display: flex;
+        justify-content: space-between;
+    }
+}
+
+/*TABLETS*/
+@media screen and (min-width: 800px) {
+    .toolbar {
+        display: flex;
+        justify-content: space-between;
+    }
 }
 
     </style>
