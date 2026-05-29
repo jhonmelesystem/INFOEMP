@@ -522,7 +522,7 @@ async function login() {
 
             if (!name || !documentVal || !employeeNumber) return showCustomAlert("Nombre, Documento y No. Empleado son obligatorios", "error");
 
-            const payload = { name, document: documentVal, employeeNumber, celular, lugarTrabajo, telefonoEmpresa };
+            const payload = { name, document: documentVal, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa };
             
             let res;
             if (editingId) {
