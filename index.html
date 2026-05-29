@@ -318,28 +318,53 @@
     </div>
 
     <!-- MODAL -->
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <div style="padding:20px 25px; border-bottom:1px solid #4b5563;">
-                <h2 id="modal-title" style="font-size:1.5rem; font-weight:bold;">Agregar Empleado</h2>
-            </div>
-            <div style="padding:25px;">
-                <div class="input-group"><label>Nombre Completo</label><input id="name-input" type="text" class="input-field"></div>
-                <div class="input-group"><label>No. Documento</label><input id="doc-input" type="text" class="input-field"></div>
-                <div class="input-group"><label>No. Empleado</label><input id="emp-input" type="text" class="input-field"></div>
-                <div class="input-group"><label>Celular</label><input id="cel-input" type="text" class="input-field"></div>
-                <div class="input-group"><label>Seguro Médico</label><input id="seguro-input" type="text" class="input-field"></div>
-                <div class="input-group"><label>Tipo de Sangre</label><input id="blood-type-input" type="text" class="input-field"></div>
-                <div class="input-group"><label>Lugar de Trabajo</label><input id="work-input" type="text" class="input-field"></div>
-                <div class="input-group"><label>Teléfono de la Empresa</label><input id="company-phone-input" type="text" class="input-field"></div>
-            </div>
-            <div style="padding:15px 25px; border-top:1px solid #4b5563; display:flex; gap:10px; flex-wrap:wrap;">
-                <button onclick="closeModal()" style="flex:1;padding:12px;background:#64748b;border:none;border-radius:4px;color:white;cursor:pointer;">Cancelar</button>
-                <button onclick="saveEmployee()" style="flex:1;padding:12px;background:#1e40af;border:none;border-radius:4px;color:white;font-weight:500;cursor:pointer;">Guardar</button>
-                <button onclick="generateShareLink()" id="ver-btn" style="flex:1;padding:12px;background:#22c55e;border:none;border-radius:4px;color:black;font-weight:600; display:none;cursor:pointer;">🔗 Copiar Link</button>
-            </div>
+  <div id="modal" class="modal" style="
+    display: none; /* Cambiar a flex/block cuando se abra */
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,0.5); 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 1000;
+    padding: 20px; /* Margen para que no toque los bordes del celular */
+">
+    <div class="modal-content" style="
+        background: #1e293b; /* Tu color de fondo actual */
+        color: white;
+        border-radius: 8px;
+        width: 100%;
+        max-width: 500px;
+        max-height: 90vh; /* Ocupa máximo el 90% de la altura de la pantalla */
+        display: flex;
+        flex-direction: column; /* Organiza título, cuerpo y botones en fila vertical */
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+    ">
+        <div style="padding:20px 25px; border-bottom:1px solid #4b5563; flex-shrink: 0;">
+            <h2 id="modal-title" style="font-size:1.5rem; font-weight:bold; margin:0;">Agregar Empleado</h2>
+        </div>
+        
+        <div style="
+            padding:25px; 
+            overflow-y: auto; /* <--- Esto activa el scroll vertical */
+            flex-grow: 1; /* Absorbe el espacio disponible */
+        ">
+            <div class="input-group"><label>Nombre Completo</label><input id="name-input" type="text" class="input-field"></div>
+            <div class="input-group"><label>No. Documento</label><input id="doc-input" type="text" class="input-field"></div>
+            <div class="input-group"><label>No. Empleado</label><input id="emp-input" type="text" class="input-field"></div>
+            <div class="input-group"><label>Celular</label><input id="cel-input" type="text" class="input-field"></div>
+            <div class="input-group"><label>Seguro Médico</label><input id="seguro-input" type="text" class="input-field"></div>
+            <div class="input-group"><label>Tipo de Sangre</label><input id="blood-type-input" type="text" class="input-field"></div>
+            <div class="input-group"><label>Lugar de Trabajo</label><input id="work-input" type="text" class="input-field"></div>
+            <div class="input-group"><label>Teléfono de la Empresa</label><input id="company-phone-input" type="text" class="input-field"></div>
+        </div>
+        
+        <div style="padding:15px 25px; border-top:1px solid #4b5563; display:flex; gap:10px; flex-wrap:wrap; flex-shrink: 0;">
+            <button onclick="closeModal()" style="flex:1;padding:12px;background:#64748b;border:none;border-radius:4px;color:white;cursor:pointer;">Cancelar</button>
+            <button onclick="saveEmployee()" style="flex:1;padding:12px;background:#1e40af;border:none;border-radius:4px;color:white;font-weight:500;cursor:pointer;">Guardar</button>
+            <button onclick="generateShareLink()" id="ver-btn" style="flex:1;padding:12px;background:#22c55e;border:none;border-radius:4px;color:black;font-weight:600; display:none;cursor:pointer;">🔗 Copiar Link</button>
         </div>
     </div>
+</div>
 
 <script>
         const API_URL = 'https://infoemp-production.up.railway.app/api';
