@@ -10,9 +10,10 @@
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
+    "express": "^4.22.2",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.9.7"
+    "mysql2": "^3.9.7",
+    "stripe": "^22.2.0"
   },
   "repository": {
     "type": "git",
