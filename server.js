@@ -23,8 +23,8 @@ app.use(express.static('public'));
 // Conexión a la base de datos infoemp 192.168.100.24 5000
 // ================= CONEXIÓN A MYSQL LOCAL =================
 const db = mysql.createConnection({
-    host: '192.168.100.24',
-    port: 5000, // Puerto donde corre tu MySQL Workbench
+    host: 'localhost',
+    port: 3306, // Puerto donde corre tu MySQL Workbench
     user: 'root',
     password: 'ODod123456',
     database: 'infoemp'
