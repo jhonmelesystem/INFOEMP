@@ -4,16 +4,21 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 
-// Para que Express sirva los archivos de tu frontend (HTML, CSS, JS)
-app.use(express.static('public')); // O el nombre de la carpeta donde tengas tu HTML
+// 1. Inicializar app PRIMERO
+const app = express();
+
 const JWT_SECRET = 'INFOEMP_SUPER_SECRET_KEY_2026';
 
+// 2. Configurar middlewares (CORS, JSON y archivos estáticos)
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE'], 
     allowedHeaders: ['Content-Type', 'Authorization'] 
 }));
 app.use(express.json());
+
+// Sirve los archivos del frontend (HTML, CSS, JS) de la carpeta public
+app.use(express.static('public'));
 
 // Conexión a la base de datos infoemp 192.168.100.24 5000
 // ================= CONEXIÓN A MYSQL LOCAL =================
