@@ -52,6 +52,7 @@ const crearTablasDeFormaAutomatica = () => {
     const tablaEmpleados = `
         CREATE TABLE IF NOT EXISTS employees (
             id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
             name VARCHAR(100) NOT NULL,
             document VARCHAR(50) NOT NULL,
             employeeNumber VARCHAR(50) NOT NULL,
@@ -74,18 +75,21 @@ const crearTablasDeFormaAutomatica = () => {
             console.error('Error creando tabla employees:', err.message);
         } else {
             console.log('✅ Tabla employees verificada/creada');
-            
-            // Inyectar columnas faltantes por si acaso
-            const agregarSeguro = `ALTER TABLE employees ADD COLUMN seguroMedico VARCHAR(100);`;
-            const agregarSangre = `ALTER TABLE employees ADD COLUMN tipoSangre VARCHAR(20);`;
-
-            db.query(agregarSeguro, (errAlter) => {
-                if (!errAlter) console.log('✅ Columna seguroMedico verificada');
-            });
-            db.query(agregarSangre, (errAlter) => {
-                if (!errAlter) console.log('✅ Columna tipoSangre verificada');
-            });
         }
+
+        const agregarUserId = `ALTER TABLE employees ADD COLUMN IF NOT EXISTS user_id INT;`;
+        const agregarSeguro = `ALTER TABLE employees ADD COLUMN IF NOT EXISTS seguroMedico VARCHAR(100);`;
+        const agregarSangre = `ALTER TABLE employees ADD COLUMN IF NOT EXISTS tipoSangre VARCHAR(20);`;
+
+        db.query(agregarUserId, (errAlter) => {
+            if (!errAlter) console.log('✅ Columna user_id verificada');
+        });
+        db.query(agregarSeguro, (errAlter) => {
+            if (!errAlter) console.log('✅ Columna seguroMedico verificada');
+        });
+        db.query(agregarSangre, (errAlter) => {
+            if (!errAlter) console.log('✅ Columna tipoSangre verificada');
+        });
     });
 };
 crearTablasDeFormaAutomatica();
@@ -153,7 +157,9 @@ app.post('/api/login', (req, res) => {
 
 // Obtener todos los empleados (Protegido)
 app.get('/api/employees', verificarToken, (req, res) => {
-    db.query('SELECT * FROM employees ORDER BY id DESC', (err, results) => {
+    const userId = req.user.id;
+
+    db.query('SELECT * FROM employees WHERE user_id = ? ORDER BY id DESC', [userId], (err, results) => {
         if (err) return res.status(500).json({ error: 'Error al obtener empleados' });
         res.json(results);
     });
@@ -161,22 +167,28 @@ app.get('/api/employees', verificarToken, (req, res) => {
 
 // Guardar nuevo empleado (Protegido)
 app.post('/api/employees', verificarToken, (req, res) => {
+    const userId = req.user.id;
     const { name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa } = req.body;
-    const query = `INSERT INTO employees (name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-    
-    db.query(query, [name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa], (err, result) => {
-        if (err) return res.status(500).json({ error: 'Error al guardar empleado' });
-        res.status(201).json({ message: 'Empleado creado' });
+
+    const query = `INSERT INTO employees (user_id, name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    db.query(query, [userId, name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Error al guardar el empleado' });
+        }
+        res.status(201).json({ message: 'Empleado guardado exitosamente para tu cuenta' });
     });
 });
 
 // Editar empleado (Protegido)
 app.put('/api/employees/:id', verificarToken, (req, res) => {
     const { id } = req.params;
+    const userId = req.user.id;
     const { name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa } = req.body;
-    const query = `UPDATE employees SET name=?, document=?, employeeNumber=?, celular=?, seguroMedico=?, tipoSangre=?, lugarTrabajo=?, telefonoEmpresa=? WHERE id=?`;
+    const query = `UPDATE employees SET name=?, document=?, employeeNumber=?, celular=?, seguroMedico=?, tipoSangre=?, lugarTrabajo=?, telefonoEmpresa=? WHERE id=? AND user_id=?`;
 
-    db.query(query, [name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa, id], (err, result) => {
+    db.query(query, [name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa, id, userId], (err, result) => {
         if (err) return res.status(500).json({ error: 'Error al actualizar empleado' });
         res.json({ message: 'Empleado actualizado' });
     });
@@ -185,10 +197,11 @@ app.put('/api/employees/:id', verificarToken, (req, res) => {
 // Eliminar múltiples empleados (Protegido)
 app.post('/api/employees/delete-multiple', verificarToken, (req, res) => {
     const { ids } = req.body;
+    const userId = req.user.id;
     if (!ids || ids.length === 0) return res.status(400).json({ error: 'No se enviaron IDs' });
 
-    const query = 'DELETE FROM employees WHERE id IN (?)';
-    db.query(query, [ids], (err, result) => {
+    const query = 'DELETE FROM employees WHERE user_id = ? AND id IN (?)';
+    db.query(query, [userId, ids], (err, result) => {
         if (err) return res.status(500).json({ error: 'Error al eliminar empleados' });
         res.json({ message: 'Empleados eliminados con éxito' });
     });
