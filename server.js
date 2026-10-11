@@ -20,11 +20,10 @@ app.use(express.json());
 // Sirve los archivos del frontend (HTML, CSS, JS) de la carpeta public
 app.use(express.static('public'));
 
-// Conexión a la base de datos infoemp 192.168.100.24 5000
 // ================= CONEXIÓN A MYSQL LOCAL =================
 const db = mysql.createConnection({
     host: 'localhost',
-    port: 3306, // Puerto donde corre tu MySQL Workbench
+    port: 3306,
     user: 'root',
     password: 'ODod123456',
     database: 'infoemp'
@@ -76,20 +75,6 @@ const crearTablasDeFormaAutomatica = () => {
         } else {
             console.log('✅ Tabla employees verificada/creada');
         }
-
-        const agregarUserId = `ALTER TABLE employees ADD COLUMN IF NOT EXISTS user_id INT;`;
-        const agregarSeguro = `ALTER TABLE employees ADD COLUMN IF NOT EXISTS seguroMedico VARCHAR(100);`;
-        const agregarSangre = `ALTER TABLE employees ADD COLUMN IF NOT EXISTS tipoSangre VARCHAR(20);`;
-
-        db.query(agregarUserId, (errAlter) => {
-            if (!errAlter) console.log('✅ Columna user_id verificada');
-        });
-        db.query(agregarSeguro, (errAlter) => {
-            if (!errAlter) console.log('✅ Columna seguroMedico verificada');
-        });
-        db.query(agregarSangre, (errAlter) => {
-            if (!errAlter) console.log('✅ Columna tipoSangre verificada');
-        });
     });
 };
 crearTablasDeFormaAutomatica();
@@ -160,7 +145,10 @@ app.get('/api/employees', verificarToken, (req, res) => {
     const userId = req.user.id;
 
     db.query('SELECT * FROM employees WHERE user_id = ? ORDER BY id DESC', [userId], (err, results) => {
-        if (err) return res.status(500).json({ error: 'Error al obtener empleados' });
+        if (err) {
+            console.error('Error GET employees:', err);
+            return res.status(500).json({ error: 'Error al obtener empleados' });
+        }
         res.json(results);
     });
 });
@@ -171,10 +159,10 @@ app.post('/api/employees', verificarToken, (req, res) => {
     const { name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa } = req.body;
 
     const query = `INSERT INTO employees (user_id, name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-    db.query(query, [userId, name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa], (err, result) => {
+    
+    db.query(query, [userId, name, document, employeeNumber, celular || '', seguroMedico || '', tipoSangre || '', lugarTrabajo || '', telefonoEmpresa || ''], (err, result) => {
         if (err) {
-            console.error(err);
+            console.error('Error POST employee:', err);
             return res.status(500).json({ error: 'Error al guardar el empleado' });
         }
         res.status(201).json({ message: 'Empleado guardado exitosamente para tu cuenta' });
@@ -186,23 +174,37 @@ app.put('/api/employees/:id', verificarToken, (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     const { name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa } = req.body;
+    
     const query = `UPDATE employees SET name=?, document=?, employeeNumber=?, celular=?, seguroMedico=?, tipoSangre=?, lugarTrabajo=?, telefonoEmpresa=? WHERE id=? AND user_id=?`;
 
-    db.query(query, [name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa, id, userId], (err, result) => {
-        if (err) return res.status(500).json({ error: 'Error al actualizar empleado' });
+    db.query(query, [name, document, employeeNumber, celular || '', seguroMedico || '', tipoSangre || '', lugarTrabajo || '', telefonoEmpresa || '', id, userId], (err, result) => {
+        if (err) {
+            console.error('Error PUT employee:', err);
+            return res.status(500).json({ error: 'Error al actualizar empleado' });
+        }
         res.json({ message: 'Empleado actualizado' });
     });
 });
 
-// Eliminar múltiples empleados (Protegido)
+// Eliminar múltiples empleados (Protegido - Corregido para array IN)
 app.post('/api/employees/delete-multiple', verificarToken, (req, res) => {
     const { ids } = req.body;
     const userId = req.user.id;
-    if (!ids || ids.length === 0) return res.status(400).json({ error: 'No se enviaron IDs' });
 
-    const query = 'DELETE FROM employees WHERE user_id = ? AND id IN (?)';
-    db.query(query, [userId, ids], (err, result) => {
-        if (err) return res.status(500).json({ error: 'Error al eliminar empleados' });
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'No se enviaron IDs válidos' });
+    }
+
+    // Generar la cantidad exacta de signos de interrogación según los IDs enviados
+    const placeholders = ids.map(() => '?').join(',');
+    const query = `DELETE FROM employees WHERE user_id = ? AND id IN (${placeholders})`;
+
+    // Pasamos userId seguido de todos los IDs desglosados con ...ids
+    db.query(query, [userId, ...ids], (err, result) => {
+        if (err) {
+            console.error('Error DELETE multiple:', err);
+            return res.status(500).json({ error: 'Error al eliminar empleados' });
+        }
         res.json({ message: 'Empleados eliminados con éxito' });
     });
 });
@@ -218,7 +220,6 @@ app.get('/api/share/employee/:id', (req, res) => {
 });
 
 // Inicializar Servidor
-// AHORA (forzamos el 5000)
 const PORT = 5000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`⭐ Servidor InfoEmp corriendo perfectamente en el puerto ${PORT}`);
