@@ -352,327 +352,327 @@
         </div>
     </div>
 
-    <script>
-        const API_URL = 'https://infoemp-production.up.railway.app/api';
-        let token = localStorage.getItem('infoemp_token') || sessionStorage.getItem('infoemp_token');
-        let employees = [];
-        let editingId = null;
+  <script>
+    const API_URL = 'http://localhost:5000/api';
+    let token = localStorage.getItem('infoemp_token') || sessionStorage.getItem('infoemp_token');
+    let employees = [];
+    let editingId = null;
 
-        function showCustomAlert(message, type = 'success') {
-            const alertBox = document.createElement('div');
-            alertBox.className = `custom-alert ${type === 'error' ? 'error' : ''}`;
-            alertBox.innerHTML = `<i class="fas ${type === 'error' ? 'fa-times-circle' : 'fa-check-circle'}" style="margin-right:10px;"></i> ${message}`;
-            document.body.appendChild(alertBox);
-            setTimeout(() => alertBox.remove(), 3000);
+    function showCustomAlert(message, type = 'success') {
+        const alertBox = document.createElement('div');
+        alertBox.className = `custom-alert ${type === 'error' ? 'error' : ''}`;
+        alertBox.innerHTML = `<i class="fas ${type === 'error' ? 'fa-times-circle' : 'fa-check-circle'}" style="margin-right:10px;"></i> ${message}`;
+        document.body.appendChild(alertBox);
+        setTimeout(() => alertBox.remove(), 5000);
+    }
+
+    function showLogin() {
+        document.getElementById('register-screen').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'block';
+    }
+
+    function showRegister() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('register-screen').style.display = 'block';
+    }
+
+    async function registerUser() {
+        const usuario = document.getElementById('reg-user').value.trim();
+        const contrasena = document.getElementById('reg-pass').value.trim();
+
+        if (!usuario || !contrasena) {
+            return showCustomAlert("Usuario y Contraseña son obligatorios", "error");
         }
 
-        function showLogin() {
-            document.getElementById('register-screen').style.display = 'none';
-            document.getElementById('login-screen').style.display = 'block';
-        }
-
-        function showRegister() {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('register-screen').style.display = 'block';
-        }
-
-        async function registerUser() {
-            const usuario = document.getElementById('reg-user').value.trim();
-            const contrasena = document.getElementById('reg-pass').value.trim();
-
-            if (!usuario || !contrasena) {
-                return showCustomAlert("Usuario y Contraseña son obligatorios", "error");
-            }
-
-            try {
-                const res = await fetch(`${API_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: usuario, password: contrasena })
-                });
-                const data = await res.json();
-
-                if (res.ok) {
-                    showCustomAlert("✅ Usuario registrado correctamente. Ya puedes iniciar sesión.");
-                    showLogin();
-                } else {
-                    showCustomAlert(data.error || "Error al registrar", "error");
-                }
-            } catch (err) {
-                showCustomAlert("Error de conexión con el servidor", "error");
-            }
-        }
-
-        async function login() {
-            const usuario = document.getElementById('login-user').value.trim();
-            const contrasena = document.getElementById('login-pass').value.trim();
-            const remember = document.getElementById('remember-me').checked;
-
-            if (!usuario || !contrasena) {
-                return showCustomAlert("Por favor, llena todos los campos", "error");
-            }
-
-            try {
-                const res = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: usuario, password: contrasena })
-                });
-                const data = await res.json();
-
-                if (res.ok) {
-                    token = data.token;
-                    if (remember) {
-                        localStorage.setItem('infoemp_token', token);
-                        localStorage.setItem('infoemp_username', usuario); 
-                    } else {
-                        sessionStorage.setItem('infoemp_token', token);
-                        sessionStorage.setItem('infoemp_username', usuario); 
-                    }
-                    enterApp(usuario);
-                } else {
-                    showCustomAlert(data.error || "Credenciales incorrectas", "error");
-                }
-            } catch (err) {
-                showCustomAlert("Error de conexión con el servidor", "error");
-            }
-        }
-
-        function enterApp(username) {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('main-page').style.display = 'block';
-            document.getElementById('current-user').textContent = username;
-            loadEmployees();
-        }
-
-        function logout() {
-            localStorage.removeItem('infoemp_token');
-            localStorage.removeItem('infoemp_username');
-            sessionStorage.removeItem('infoemp_token');
-            sessionStorage.removeItem('infoemp_username');
-            token = null;
-            document.getElementById('main-page').style.display = 'none';
-            document.getElementById('login-screen').style.display = 'block';
-        }
-
-        async function loadEmployees() {
-            try {
-                const res = await fetch(`${API_URL}/employees`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    employees = await res.json();
-                    renderTable();
-                } else if (res.status === 401 || res.status === 403) {
-                    logout();
-                }
-            } catch (err) {
-                showCustomAlert("Error al cargar empleados", "error");
-            }
-        }
-
-        function renderTable(data = null) {
-            const tbody = document.getElementById('employee-table');
-            if(!tbody) return;
-            tbody.innerHTML = '';
-            const toShow = data || employees;
-            if (toShow.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:80px; color:#94a3b8;">No hay empleados aún.<br>Presiona "Agregar"</td></tr>`;
-                return;
-            }
-            toShow.forEach(emp => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td onclick="showDetail(${emp.id})">${emp.name}</td>
-                    <td onclick="showDetail(${emp.id})">${emp.document}</td>
-                    <td onclick="showDetail(${emp.id})">${emp.employeeNumber || emp.employee_number}</td>
-                    <td style="text-align:center;" onclick="event.stopImmediatePropagation()">
-                        <input type="checkbox" data-id="${emp.id}" style="width:18px;height:18px;">
-                    </td>
-                `;
-                tbody.appendChild(tr);
+        try {
+            const res = await fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: usuario, password: contrasena })
             });
+            const data = await res.json();
+
+            if (res.ok) {
+                showCustomAlert("✅ Usuario registrado correctamente. Ya puedes iniciar sesión.");
+                showLogin();
+            } else {
+                showCustomAlert(data.error || "Error al registrar", "error");
+            }
+        } catch (err) {
+            showCustomAlert("Error de conexión con el servidor", "error");
+        }
+    }
+
+    async function login() {
+        const usuario = document.getElementById('login-user').value.trim();
+        const contrasena = document.getElementById('login-pass').value.trim();
+        const remember = document.getElementById('remember-me').checked;
+
+        if (!usuario || !contrasena) {
+            return showCustomAlert("Por favor, llena todos los campos", "error");
         }
 
-        function showDetail(id) {
-            const emp = employees.find(e => e.id === id);
-            if (!emp) return;
-            editingId = id;
-            document.getElementById('modal-title').textContent = "Editar Empleado";
-            document.getElementById('name-input').value = emp.name || '';
-            document.getElementById('doc-input').value = emp.document || '';
-            document.getElementById('emp-input').value = emp.employeeNumber || emp.employee_number || '';
-            document.getElementById('cel-input').value = emp.celular || '';
-            document.getElementById('seguro-input').value = emp.seguroMedico || emp.seguro_medico || '';
-            document.getElementById('blood-type-input').value = emp.tipoSangre || emp.tipo_sangre || '';
-            document.getElementById('work-input').value = emp.lugarTrabajo || emp.lugar_trabajo || '';
-            document.getElementById('company-phone-input').value = emp.telefonoEmpresa || emp.telefono_empresa || '';
-            document.getElementById('ver-btn').style.display = 'block';
-            document.getElementById('modal').style.display = 'flex';
+        try {
+            const res = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: usuario, password: contrasena })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                token = data.token;
+                if (remember) {
+                    localStorage.setItem('infoemp_token', token);
+                    localStorage.setItem('infoemp_username', usuario); 
+                } else {
+                    sessionStorage.setItem('infoemp_token', token);
+                    sessionStorage.setItem('infoemp_username', usuario); 
+                }
+                enterApp(usuario);
+            } else {
+                showCustomAlert(data.error || "Credenciales incorrectas", "error");
+            }
+        } catch (err) {
+            showCustomAlert("Error de conexión con el servidor", "error");
+        }
+    }
+
+    function enterApp(username) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-page').style.display = 'block';
+        document.getElementById('current-user').textContent = username;
+        loadEmployees();
+    }
+
+    function logout() {
+        localStorage.removeItem('infoemp_token');
+        localStorage.removeItem('infoemp_username');
+        sessionStorage.removeItem('infoemp_token');
+        sessionStorage.removeItem('infoemp_username');
+        token = null;
+        document.getElementById('main-page').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'block';
+    }
+
+    async function loadEmployees() {
+        try {
+            const res = await fetch(`${API_URL}/employees`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                employees = await res.json();
+                renderTable();
+            } else if (res.status === 401 || res.status === 403) {
+                logout();
+            }
+        } catch (err) {
+            showCustomAlert("Error al cargar empleados", "error");
+        }
+    }
+
+    function renderTable(data = null) {
+        const tbody = document.getElementById('employee-table');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        const toShow = data || employees;
+        if (toShow.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:80px; color:#94a3b8;">No hay empleados aún.<br>Presiona "Agregar"</td></tr>`;
+            return;
+        }
+        toShow.forEach(emp => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td onclick="showDetail(${emp.id})">${emp.name}</td>
+                <td onclick="showDetail(${emp.id})">${emp.document}</td>
+                <td onclick="showDetail(${emp.id})">${emp.employeeNumber || emp.employee_number}</td>
+                <td style="text-align:center;" onclick="event.stopImmediatePropagation()">
+                    <input type="checkbox" data-id="${emp.id}" style="width:18px;height:18px;">
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function showDetail(id) {
+        const emp = employees.find(e => e.id === id);
+        if (!emp) return;
+        editingId = id;
+        document.getElementById('modal-title').textContent = "Editar Empleado";
+        document.getElementById('name-input').value = emp.name || '';
+        document.getElementById('doc-input').value = emp.document || '';
+        document.getElementById('emp-input').value = emp.employeeNumber || emp.employee_number || '';
+        document.getElementById('cel-input').value = emp.celular || '';
+        document.getElementById('seguro-input').value = emp.seguroMedico || emp.seguro_medico || '';
+        document.getElementById('blood-type-input').value = emp.tipoSangre || emp.tipo_sangre || '';
+        document.getElementById('work-input').value = emp.lugarTrabajo || emp.lugar_trabajo || '';
+        document.getElementById('company-phone-input').value = emp.telefonoEmpresa || emp.telefono_empresa || '';
+        document.getElementById('ver-btn').style.display = 'block';
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function showAddModal() {
+        editingId = null;
+        document.getElementById('modal-title').textContent = "Agregar Empleado";
+        document.getElementById('name-input').value = '';
+        document.getElementById('doc-input').value = '';
+        document.getElementById('emp-input').value = '';
+        document.getElementById('cel-input').value = '';
+        document.getElementById('seguro-input').value = '';
+        document.getElementById('blood-type-input').value = '';
+        document.getElementById('work-input').value = '';
+        document.getElementById('company-phone-input').value = '';
+        document.getElementById('ver-btn').style.display = 'none';
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    async function saveEmployee() {
+        const name = document.getElementById('name-input').value.trim();
+        const documentVal = document.getElementById('doc-input').value.trim();
+        const employeeNumber = document.getElementById('emp-input').value.trim();
+        const celular = document.getElementById('cel-input').value.trim();
+        const seguroMedico = document.getElementById('seguro-input').value.trim();
+        const tipoSangre = document.getElementById('blood-type-input').value.trim();
+        const lugarTrabajo = document.getElementById('work-input').value.trim();
+        const telefonoEmpresa = document.getElementById('company-phone-input').value.trim();
+
+        if (!name || !documentVal || !employeeNumber) {
+            return showCustomAlert("Nombre, Documento y No. Empleado son obligatorios", "error");
         }
 
-        function showAddModal() {
-            editingId = null;
-            document.getElementById('modal-title').textContent = "Agregar Empleado";
-            document.getElementById('name-input').value = '';
-            document.getElementById('doc-input').value = '';
-            document.getElementById('emp-input').value = '';
-            document.getElementById('cel-input').value = '';
-            document.getElementById('seguro-input').value = '';
-            document.getElementById('blood-type-input').value = '';
-            document.getElementById('work-input').value = '';
-            document.getElementById('company-phone-input').value = '';
-            document.getElementById('ver-btn').style.display = 'none';
-            document.getElementById('modal').style.display = 'flex';
-        }
-
-        async function saveEmployee() {
-            const name = document.getElementById('name-input').value.trim();
-            const documentVal = document.getElementById('doc-input').value.trim();
-            const employeeNumber = document.getElementById('emp-input').value.trim();
-            const celular = document.getElementById('cel-input').value.trim();
-            const seguroMedico = document.getElementById('seguro-input').value.trim();
-            const tipoSangre = document.getElementById('blood-type-input').value.trim();
-            const lugarTrabajo = document.getElementById('work-input').value.trim();
-            const telefonoEmpresa = document.getElementById('company-phone-input').value.trim();
-
-            if (!name || !documentVal || !employeeNumber) {
-                return showCustomAlert("Nombre, Documento y No. Empleado son obligatorios", "error");
+        const payload = { name, document: documentVal, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa };
+        
+        try {
+            let res;
+            if (editingId) {
+                res = await fetch(`${API_URL}/employees/${editingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+            } else {
+                res = await fetch(`${API_URL}/employees`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
             }
 
-            const payload = { name, document: documentVal, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa };
-            
+            if (res.ok) {
+                loadEmployees();
+                closeModal();
+                showCustomAlert(editingId ? "✅ Actualizado correctamente" : "✅ Agregado correctamente");
+            } else {
+                showCustomAlert("Error al guardar los datos del empleado", "error");
+            }
+        } catch (err) {
+            showCustomAlert("Error de red con el servidor", "error");
+        }
+    }
+
+    function generateShareLink() {
+        if (!editingId) return;
+        const link = `${window.location.origin}${window.location.pathname}#view=${editingId}`;
+        navigator.clipboard.writeText(link).then(() => {
+            showCustomAlert("✅ Enlace seguro copiado al portapapeles");
+        }).catch(err => {
+            alert(`Copia este enlace manualmente:\n${link}`);
+        });
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    async function deleteSelected() {
+        const checked = document.querySelectorAll('#employee-table input[type="checkbox"]:checked');
+        if (checked.length === 0) return showCustomAlert("Selecciona al menos un empleado", "error");
+        
+        if (confirm(`¿Eliminar ${checked.length} empleado(s)?`)) {
+            const ids = Array.from(checked).map(cb => Number(cb.dataset.id));
             try {
-                let res;
-                if (editingId) {
-                    res = await fetch(`${API_URL}/employees/${editingId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify(payload)
-                    });
-                } else {
-                    res = await fetch(`${API_URL}/employees`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify(payload)
-                    });
-                }
+                const res = await fetch(`${API_URL}/employees/delete-multiple`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ ids })
+                });
 
                 if (res.ok) {
                     loadEmployees();
-                    closeModal();
-                    showCustomAlert(editingId ? "✅ Actualizado correctamente" : "✅ Agregado correctamente");
+                    document.getElementById('select-all').checked = false;
+                    showCustomAlert("🗑️ Empleados eliminados");
                 } else {
-                    showCustomAlert("Error al guardar los datos del empleado", "error");
+                    showCustomAlert("Error al eliminar", "error");
                 }
             } catch (err) {
-                showCustomAlert("Error de red con el servidor", "error");
+                showCustomAlert("Error de conexión", "error");
             }
         }
+    }
 
-        function generateShareLink() {
-            if (!editingId) return;
-            const link = `${window.location.origin}${window.location.pathname}#view=${editingId}`;
-            navigator.clipboard.writeText(link).then(() => {
-                showCustomAlert("✅ Enlace seguro copiado al portapapeles");
-            }).catch(err => {
-                alert(`Copia este enlace manualmente:\n${link}`);
-            });
-        }
+    function toggleSelectAll() {
+        const checked = document.getElementById('select-all').checked;
+        document.querySelectorAll('#employee-table input[type="checkbox"]').forEach(cb => cb.checked = checked);
+    }
 
-        function closeModal() {
-            document.getElementById('modal').style.display = 'none';
-        }
+    function searchTable() {
+        const term = document.getElementById('search-input').value.toLowerCase().trim();
+        if (!term) return renderTable();
+        const filtered = employees.filter(emp => 
+            (emp.name || '').toLowerCase().includes(term) || 
+            (emp.document || '').toLowerCase().includes(term) ||
+            (emp.employeeNumber || emp.employee_number || '').toLowerCase().includes(term)
+        );
+        renderTable(filtered);
+    }
 
-        async function deleteSelected() {
-            const checked = document.querySelectorAll('#employee-table input[type="checkbox"]:checked');
-            if (checked.length === 0) return showCustomAlert("Selecciona al menos un empleado", "error");
-            
-            if (confirm(`¿Eliminar ${checked.length} empleado(s)?`)) {
-                const ids = Array.from(checked).map(cb => Number(cb.dataset.id));
-                try {
-                    const res = await fetch(`${API_URL}/employees/delete-multiple`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ ids })
-                    });
+    function filterTable() {
+        document.getElementById('search-input').focus();
+    }
 
-                    if (res.ok) {
-                        loadEmployees();
-                        document.getElementById('select-all').checked = false;
-                        showCustomAlert("🗑️ Empleados eliminados");
-                    } else {
-                        showCustomAlert("Error al eliminar", "error");
-                    }
-                } catch (err) {
-                    showCustomAlert("Error de conexión", "error");
-                }
+    function closeShareView() {
+        window.location.hash = '';
+        window.location.reload();
+    }
+
+    window.onload = async () => {
+        const hash = window.location.hash;
+        token = localStorage.getItem('infoemp_token') || sessionStorage.getItem('infoemp_token');
+        
+        if (hash.includes('#view=')) {
+            const id = hash.split('#view=')[1];
+            try {
+                const res = await fetch(`${API_URL}/share/employee/${id}`);
+                if (!res.ok) throw new Error();
+                const employee = await res.json();
+                
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-page').style.display = 'none';
+                document.getElementById('share-page').style.display = 'flex';
+                
+                document.getElementById('share-body').innerHTML = `
+                    <p><strong>NOMBRE:</strong> ${employee.name || ''}</p>
+                    <p><strong>NO. DE DOCUMENTO:</strong> ${employee.document || ''}</p>
+                    <p><strong>NO. DE EMPLEADO:</strong> ${employee.employeeNumber || employee.employee_number || ''}</p>
+                    <p><strong>CELULAR:</strong> ${employee.celular || ''}</p>
+                    <p><strong>SEGURO MÉDICO:</strong> ${employee.seguroMedico || employee.seguro_medico || ''}</p>
+                    <p><strong>TIPO DE SANGRE:</strong> ${employee.tipoSangre || employee.tipo_sangre || ''}</p>
+                    <p><strong>LUGAR DE TRABAJO:</strong> ${employee.lugarTrabajo || employee.lugar_trabajo || ''}</p>
+                    <p><strong>TELÉFONO DE LA EMPRESA:</strong> ${employee.telefonoEmpresa || employee.telefono_empresa || ''}</p>
+                `;
+            } catch {
+                showCustomAlert("El enlace no existe o expiró", "error");
+                showLogin();
             }
-        }
-
-        function toggleSelectAll() {
-            const checked = document.getElementById('select-all').checked;
-            document.querySelectorAll('#employee-table input[type="checkbox"]').forEach(cb => cb.checked = checked);
-        }
-
-        function searchTable() {
-            const term = document.getElementById('search-input').value.toLowerCase().trim();
-            if (!term) return renderTable();
-            const filtered = employees.filter(emp => 
-                (emp.name || '').toLowerCase().includes(term) || 
-                (emp.document || '').toLowerCase().includes(term) ||
-                (emp.employeeNumber || emp.employee_number || '').toLowerCase().includes(term)
-            );
-            renderTable(filtered);
-        }
-
-        function filterTable() {
-            document.getElementById('search-input').focus();
-        }
-
-        function closeShareView() {
-            window.location.hash = '';
-            window.location.reload();
-        }
-
-        window.onload = async () => {
-            const hash = window.location.hash;
-            token = localStorage.getItem('infoemp_token') || sessionStorage.getItem('infoemp_token');
-            
-            if (hash.includes('#view=')) {
-                const id = hash.split('#view=')[1];
-                try {
-                    const res = await fetch(`${API_URL}/share/employee/${id}`);
-                    if (!res.ok) throw new Error();
-                    const employee = await res.json();
-                    
-                    document.getElementById('login-screen').style.display = 'none';
-                    document.getElementById('main-page').style.display = 'none';
-                    document.getElementById('share-page').style.display = 'flex';
-                    
-                    document.getElementById('share-body').innerHTML = `
-                        <p><strong>NOMBRE:</strong> ${employee.name || ''}</p>
-                        <p><strong>NO. DE DOCUMENTO:</strong> ${employee.document || ''}</p>
-                        <p><strong>NO. DE EMPLEADO:</strong> ${employee.employeeNumber || employee.employee_number || ''}</p>
-                        <p><strong>CELULAR:</strong> ${employee.celular || ''}</p>
-                        <p><strong>SEGURO MÉDICO:</strong> ${employee.seguroMedico || employee.seguro_medico || ''}</p>
-                        <p><strong>TIPO DE SANGRE:</strong> ${employee.tipoSangre || employee.tipo_sangre || ''}</p>
-                        <p><strong>LUGAR DE TRABAJO:</strong> ${employee.lugarTrabajo || employee.lugar_trabajo || ''}</p>
-                        <p><strong>TELÉFONO DE LA EMPRESA:</strong> ${employee.telefonoEmpresa || employee.telefono_empresa || ''}</p>
-                    `;
-                } catch {
-                    showCustomAlert("El enlace no existe o expiró", "error");
-                    showLogin();
-                }
+        } else {
+            const savedUsername = localStorage.getItem('infoemp_username') || sessionStorage.getItem('infoemp_username');
+            if (token && savedUsername) {
+                enterApp(savedUsername);
             } else {
-                const savedUsername = localStorage.getItem('infoemp_username') || sessionStorage.getItem('infoemp_username');
-                if (token && savedUsername) {
-                    enterApp(savedUsername);
-                } else {
-                    showLogin();
-                }
+                showLogin();
             }
-        };
-    </script>
+        }
+    };
+</script>
 </body>
 </html>

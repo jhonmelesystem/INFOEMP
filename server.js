@@ -14,15 +14,22 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Conexión a la base de datos de Railway
-const db = mysql.createConnection('mysql://root:FBlHOfBimkmuyqXlCFbamLsvWTBINTPC@kodama.proxy.rlwy.net:16648/railway');
+// Conexión a la base de datos infoemp localhost 5000
+// ================= CONEXIÓN A MYSQL LOCAL =================
+const db = mysql.createConnection({
+    host: 'localhost',
+    port: 3306, // Puerto donde corre tu MySQL Workbench
+    user: 'root',
+    password: 'ODod123456',
+    database: 'infoemp'
+});
 
 db.connect((err) => {
     if (err) {
-        console.error('❌ Error conectando a la base de datos de Railway:', err.message);
+        console.error('❌ Error conectando a la base de datos de infoemp:', err.message);
         return;
     }
-    console.log('🚀 ¡Conectado con éxito a la base de datos de Railway en la nube!');
+    console.log('🚀 ¡Conectado con éxito a la base de datos de infoemp!');
 });
 
 // Creación automática de tablas
@@ -192,7 +199,8 @@ app.get('/api/share/employee/:id', (req, res) => {
 });
 
 // Inicializar Servidor
-const PORT = process.env.PORT || 3000;
+// AHORA (forzamos el 5000)
+const PORT = 5000;
 app.listen(PORT, () => {
     console.log(`⭐ Servidor InfoEmp corriendo perfectamente en el puerto ${PORT}`);
 });
