@@ -14,11 +14,11 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Conexión a la base de datos infoemp localhost 5000
+// Conexión a la base de datos infoemp 192.168.100.24 5000
 // ================= CONEXIÓN A MYSQL LOCAL =================
 const db = mysql.createConnection({
-    host: 'localhost',
-    port: 3306, // Puerto donde corre tu MySQL Workbench
+    host: '192.168.100.24',
+    port: 5000, // Puerto donde corre tu MySQL Workbench
     user: 'root',
     password: 'ODod123456',
     database: 'infoemp'
@@ -201,6 +201,6 @@ app.get('/api/share/employee/:id', (req, res) => {
 // Inicializar Servidor
 // AHORA (forzamos el 5000)
 const PORT = 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`⭐ Servidor InfoEmp corriendo perfectamente en el puerto ${PORT}`);
 });
