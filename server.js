@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 
-const app = express();
+// Para que Express sirva los archivos de tu frontend (HTML, CSS, JS)
+app.use(express.static('public')); // O el nombre de la carpeta donde tengas tu HTML
 const JWT_SECRET = 'INFOEMP_SUPER_SECRET_KEY_2026';
 
 app.use(cors({
