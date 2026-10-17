@@ -353,15 +353,20 @@
     </div>
 
   <script>
-    const API_URL = 'https://laboratory-amount-viking-print.trycloudflare.com/api';
+    const API_URL = '/api';
     let token = localStorage.getItem('infoemp_token') || sessionStorage.getItem('infoemp_token');
     let employees = [];
     let editingId = null;
 
+    // Escapa texto antes de insertarlo con innerHTML (evita XSS)
+    function esc(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
     function showCustomAlert(message, type = 'success') {
         const alertBox = document.createElement('div');
         alertBox.className = `custom-alert ${type === 'error' ? 'error' : ''}`;
-        alertBox.innerHTML = `<i class="fas ${type === 'error' ? 'fa-times-circle' : 'fa-check-circle'}" style="margin-right:10px;"></i> ${message}`;
+        alertBox.innerHTML = `<i class="fas ${type === 'error' ? 'fa-times-circle' : 'fa-check-circle'}" style="margin-right:10px;"></i> ${esc(message)}`;
         document.body.appendChild(alertBox);
         setTimeout(() => alertBox.remove(), 5000);
     }
@@ -483,11 +488,11 @@
         toShow.forEach(emp => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td onclick="showDetail(${emp.id})">${emp.name}</td>
-                <td onclick="showDetail(${emp.id})">${emp.document}</td>
-                <td onclick="showDetail(${emp.id})">${emp.employeeNumber || emp.employee_number}</td>
+                <td onclick="showDetail(${Number(emp.id)})">${esc(emp.name)}</td>
+                <td onclick="showDetail(${Number(emp.id)})">${esc(emp.document)}</td>
+                <td onclick="showDetail(${Number(emp.id)})">${esc(emp.employeeNumber || emp.employee_number)}</td>
                 <td style="text-align:center;" onclick="event.stopImmediatePropagation()">
-                    <input type="checkbox" data-id="${emp.id}" style="width:18px;height:18px;">
+                    <input type="checkbox" data-id="${Number(emp.id)}" style="width:18px;height:18px;">
                 </td>
             `;
             tbody.appendChild(tr);
@@ -559,9 +564,10 @@
             }
 
             if (res.ok) {
+                const fueEdicion = !!editingId;
                 loadEmployees();
                 closeModal();
-                showCustomAlert(editingId ? "✅ Actualizado correctamente" : "✅ Agregado correctamente");
+                showCustomAlert(fueEdicion ? "✅ Actualizado correctamente" : "✅ Agregado correctamente");
             } else {
                 showCustomAlert("Error al guardar los datos del empleado", "error");
             }
@@ -572,10 +578,14 @@
 
     function generateShareLink() {
         if (!editingId) return;
-        const link = `${window.location.origin}${window.location.pathname}#view=${editingId}`;
+        const emp = employees.find(e => e.id === editingId);
+        if (!emp || !emp.share_token) {
+            return showCustomAlert("Este empleado no tiene token de enlace", "error");
+        }
+        const link = `${window.location.origin}${window.location.pathname}#view=${emp.share_token}`;
         navigator.clipboard.writeText(link).then(() => {
             showCustomAlert("✅ Enlace seguro copiado al portapapeles");
-        }).catch(err => {
+        }).catch(() => {
             alert(`Copia este enlace manualmente:\n${link}`);
         });
     }
@@ -640,9 +650,9 @@
         token = localStorage.getItem('infoemp_token') || sessionStorage.getItem('infoemp_token');
         
         if (hash.includes('#view=')) {
-            const id = hash.split('#view=')[1];
+            const shareToken = hash.split('#view=')[1];
             try {
-                const res = await fetch(`${API_URL}/share/employee/${id}`);
+                const res = await fetch(`${API_URL}/share/employee/${encodeURIComponent(shareToken)}`);
                 if (!res.ok) throw new Error();
                 const employee = await res.json();
                 
@@ -651,14 +661,14 @@
                 document.getElementById('share-page').style.display = 'flex';
                 
                 document.getElementById('share-body').innerHTML = `
-                    <p><strong>NOMBRE:</strong> ${employee.name || ''}</p>
-                    <p><strong>NO. DE DOCUMENTO:</strong> ${employee.document || ''}</p>
-                    <p><strong>NO. DE EMPLEADO:</strong> ${employee.employeeNumber || employee.employee_number || ''}</p>
-                    <p><strong>CELULAR:</strong> ${employee.celular || ''}</p>
-                    <p><strong>SEGURO MÉDICO:</strong> ${employee.seguroMedico || employee.seguro_medico || ''}</p>
-                    <p><strong>TIPO DE SANGRE:</strong> ${employee.tipoSangre || employee.tipo_sangre || ''}</p>
-                    <p><strong>LUGAR DE TRABAJO:</strong> ${employee.lugarTrabajo || employee.lugar_trabajo || ''}</p>
-                    <p><strong>TELÉFONO DE LA EMPRESA:</strong> ${employee.telefonoEmpresa || employee.telefono_empresa || ''}</p>
+                    <p><strong>NOMBRE:</strong> ${esc(employee.name)}</p>
+                    <p><strong>NO. DE DOCUMENTO:</strong> ${esc(employee.document)}</p>
+                    <p><strong>NO. DE EMPLEADO:</strong> ${esc(employee.employeeNumber)}</p>
+                    <p><strong>CELULAR:</strong> ${esc(employee.celular)}</p>
+                    <p><strong>SEGURO MÉDICO:</strong> ${esc(employee.seguroMedico)}</p>
+                    <p><strong>TIPO DE SANGRE:</strong> ${esc(employee.tipoSangre)}</p>
+                    <p><strong>LUGAR DE TRABAJO:</strong> ${esc(employee.lugarTrabajo)}</p>
+                    <p><strong>TELÉFONO DE LA EMPRESA:</strong> ${esc(employee.telefonoEmpresa)}</p>
                 `;
             } catch {
                 showCustomAlert("El enlace no existe o expiró", "error");

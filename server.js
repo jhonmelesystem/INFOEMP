@@ -1,85 +1,84 @@
 const express = require('express');
 const mysql = require('mysql2');
-const bcrypt = require('bcryptjs'); 
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const path = require('path');
+const { randomUUID } = require('crypto');
 
-// 1. Inicializar app PRIMERO
 const app = express();
 
-const JWT_SECRET = 'INFOEMP_SUPER_SECRET_KEY_2026';
+// ================= CONFIGURACIÓN (variables de entorno) =================
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.RAILWAY_ENVIRONMENT ? null : 'clave_solo_para_desarrollo_local');
+if (!JWT_SECRET) {
+    console.error('❌ Falta la variable JWT_SECRET');
+    process.exit(1);
+}
 
-// 2. Configurar middlewares (CORS, JSON y archivos estáticos)
 app.use(cors({
-    origin: '*', 
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], 
-    allowedHeaders: ['Content-Type', 'Authorization'] 
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Sirve los archivos del frontend (HTML, CSS, JS) de la carpeta public
-app.use(express.static('public'));
-
-// ================= CONEXIÓN A MYSQL LOCAL =================
-const db = mysql.createConnection({
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    password: 'ODod123456',
-    database: 'infoemp'
+// ================= CONEXIÓN A MYSQL (pool) =================
+const db = mysql.createPool({
+    host: process.env.MYSQLHOST || 'localhost',
+    port: process.env.MYSQLPORT || 3306,
+    user: process.env.MYSQLUSER || 'root',
+    password: process.env.MYSQLPASSWORD || '',
+    database: process.env.MYSQLDATABASE || 'infoemp',
+    waitForConnections: true,
+    connectionLimit: 10
 });
 
-db.connect((err) => {
-    if (err) {
-        console.error('❌ Error conectando a la base de datos de infoemp:', err.message);
-        return;
-    }
-    console.log('🚀 ¡Conectado con éxito a la base de datos de infoemp!');
-});
+// Creación automática de tablas + migración de share_token
+async function iniciarBaseDeDatos() {
+    const p = db.promise();
+    try {
+        await p.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(50) NOT NULL UNIQUE,
+                password VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('✅ Tabla users verificada/creada');
 
-// Creación automática de tablas
-const crearTablasDeFormaAutomatica = () => {
-    const tablaUsuarios = `
-        CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            username VARCHAR(50) NOT NULL UNIQUE,
-            password VARCHAR(255) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    `;
+        await p.query(`
+            CREATE TABLE IF NOT EXISTS employees (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                document VARCHAR(50) NOT NULL,
+                employeeNumber VARCHAR(50) NOT NULL,
+                celular VARCHAR(20),
+                seguroMedico VARCHAR(100),
+                tipoSangre VARCHAR(20),
+                lugarTrabajo VARCHAR(100),
+                telefonoEmpresa VARCHAR(20),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
 
-    const tablaEmpleados = `
-        CREATE TABLE IF NOT EXISTS employees (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            name VARCHAR(100) NOT NULL,
-            document VARCHAR(50) NOT NULL,
-            employeeNumber VARCHAR(50) NOT NULL,
-            celular VARCHAR(20),
-            seguroMedico VARCHAR(100),
-            tipoSangre VARCHAR(20),
-            lugarTrabajo VARCHAR(100),
-            telefonoEmpresa VARCHAR(20),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    `;
-
-    db.query(tablaUsuarios, (err) => {
-        if (err) console.error('Error creando tabla users:', err.message);
-        else console.log('✅ Tabla users verificada/creada');
-    });
-
-    db.query(tablaEmpleados, (err) => {
-        if (err) {
-            console.error('Error creando tabla employees:', err.message);
-        } else {
-            console.log('✅ Tabla employees verificada/creada');
+        // Agregar share_token si la tabla ya existía sin esa columna
+        const [cols] = await p.query("SHOW COLUMNS FROM employees LIKE 'share_token'");
+        if (cols.length === 0) {
+            await p.query('ALTER TABLE employees ADD COLUMN share_token VARCHAR(36) UNIQUE');
         }
-    });
-};
-crearTablasDeFormaAutomatica();
+        // Dar token a los empleados que ya existían
+        await p.query('UPDATE employees SET share_token = UUID() WHERE share_token IS NULL');
+        console.log('✅ Tabla employees verificada/creada');
+    } catch (err) {
+        console.error('❌ Error de base de datos:', err.message);
+    }
+}
+iniciarBaseDeDatos();
 
-// Middleware de autenticación JWT
+// ================= MIDDLEWARE JWT =================
 const verificarToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -95,7 +94,6 @@ const verificarToken = (req, res, next) => {
 
 // ================= RUTAS DE AUTENTICACIÓN =================
 
-// Registrarse
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Faltan datos requeridos' });
@@ -104,12 +102,12 @@ app.post('/api/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const query = 'INSERT INTO users (username, password) VALUES (?, ?)';
-        db.query(query, [username, hashedPassword], (err, result) => {
+        db.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword], (err) => {
             if (err) {
                 if (err.code === 'ER_DUP_ENTRY') {
                     return res.status(400).json({ error: 'El nombre de usuario ya existe' });
                 }
+                console.error('Error register:', err.message);
                 return res.status(500).json({ error: 'Error al guardar el usuario' });
             }
             res.status(201).json({ message: 'Usuario registrado con éxito' });
@@ -119,13 +117,11 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-// Iniciar Sesión
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Campos incompletos' });
 
-    const query = 'SELECT * FROM users WHERE username = ?';
-    db.query(query, [username], async (err, results) => {
+    db.query('SELECT * FROM users WHERE username = ?', [username], async (err, results) => {
         if (err) return res.status(500).json({ error: 'Error en el servidor' });
         if (results.length === 0) return res.status(400).json({ error: 'El usuario no existe' });
 
@@ -140,11 +136,8 @@ app.post('/api/login', (req, res) => {
 
 // ================= RUTAS DE EMPLEADOS =================
 
-// Obtener todos los empleados (Protegido)
 app.get('/api/employees', verificarToken, (req, res) => {
-    const userId = req.user.id;
-
-    db.query('SELECT * FROM employees WHERE user_id = ? ORDER BY id DESC', [userId], (err, results) => {
+    db.query('SELECT * FROM employees WHERE user_id = ? ORDER BY id DESC', [req.user.id], (err, results) => {
         if (err) {
             console.error('Error GET employees:', err);
             return res.status(500).json({ error: 'Error al obtener empleados' });
@@ -153,14 +146,17 @@ app.get('/api/employees', verificarToken, (req, res) => {
     });
 });
 
-// Guardar nuevo empleado (Protegido)
 app.post('/api/employees', verificarToken, (req, res) => {
     const userId = req.user.id;
     const { name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa } = req.body;
 
-    const query = `INSERT INTO employees (user_id, name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    
-    db.query(query, [userId, name, document, employeeNumber, celular || '', seguroMedico || '', tipoSangre || '', lugarTrabajo || '', telefonoEmpresa || ''], (err, result) => {
+    if (!name || !document || !employeeNumber) {
+        return res.status(400).json({ error: 'Nombre, documento y número de empleado son obligatorios' });
+    }
+
+    const query = `INSERT INTO employees (user_id, name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa, share_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    db.query(query, [userId, name, document, employeeNumber, celular || '', seguroMedico || '', tipoSangre || '', lugarTrabajo || '', telefonoEmpresa || '', randomUUID()], (err) => {
         if (err) {
             console.error('Error POST employee:', err);
             return res.status(500).json({ error: 'Error al guardar el empleado' });
@@ -169,15 +165,14 @@ app.post('/api/employees', verificarToken, (req, res) => {
     });
 });
 
-// Editar empleado (Protegido)
 app.put('/api/employees/:id', verificarToken, (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     const { name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa } = req.body;
-    
+
     const query = `UPDATE employees SET name=?, document=?, employeeNumber=?, celular=?, seguroMedico=?, tipoSangre=?, lugarTrabajo=?, telefonoEmpresa=? WHERE id=? AND user_id=?`;
 
-    db.query(query, [name, document, employeeNumber, celular || '', seguroMedico || '', tipoSangre || '', lugarTrabajo || '', telefonoEmpresa || '', id, userId], (err, result) => {
+    db.query(query, [name, document, employeeNumber, celular || '', seguroMedico || '', tipoSangre || '', lugarTrabajo || '', telefonoEmpresa || '', id, userId], (err) => {
         if (err) {
             console.error('Error PUT employee:', err);
             return res.status(500).json({ error: 'Error al actualizar empleado' });
@@ -186,7 +181,6 @@ app.put('/api/employees/:id', verificarToken, (req, res) => {
     });
 });
 
-// Eliminar múltiples empleados (Protegido - Corregido para array IN)
 app.post('/api/employees/delete-multiple', verificarToken, (req, res) => {
     const { ids } = req.body;
     const userId = req.user.id;
@@ -195,12 +189,10 @@ app.post('/api/employees/delete-multiple', verificarToken, (req, res) => {
         return res.status(400).json({ error: 'No se enviaron IDs válidos' });
     }
 
-    // Generar la cantidad exacta de signos de interrogación según los IDs enviados
     const placeholders = ids.map(() => '?').join(',');
     const query = `DELETE FROM employees WHERE user_id = ? AND id IN (${placeholders})`;
 
-    // Pasamos userId seguido de todos los IDs desglosados con ...ids
-    db.query(query, [userId, ...ids], (err, result) => {
+    db.query(query, [userId, ...ids], (err) => {
         if (err) {
             console.error('Error DELETE multiple:', err);
             return res.status(500).json({ error: 'Error al eliminar empleados' });
@@ -209,18 +201,23 @@ app.post('/api/employees/delete-multiple', verificarToken, (req, res) => {
     });
 });
 
-// Ver detalles públicos mediante Link compartido (PÚBLICO)
-app.get('/api/share/employee/:id', (req, res) => {
-    const { id } = req.params;
-    db.query('SELECT * FROM employees WHERE id = ?', [id], (err, results) => {
-        if (err) return res.status(500).json({ error: 'Error del servidor' });
-        if (results.length === 0) return res.status(404).json({ error: 'Empleado no encontrado' });
-        res.json(results[0]);
-    });
+// Ver detalles públicos mediante link compartido (PÚBLICO, por token aleatorio)
+app.get('/api/share/employee/:token', (req, res) => {
+    const { token } = req.params;
+    db.query(
+        `SELECT name, document, employeeNumber, celular, seguroMedico, tipoSangre, lugarTrabajo, telefonoEmpresa
+         FROM employees WHERE share_token = ?`,
+        [token],
+        (err, results) => {
+            if (err) return res.status(500).json({ error: 'Error del servidor' });
+            if (results.length === 0) return res.status(404).json({ error: 'Empleado no encontrado' });
+            res.json(results[0]);
+        }
+    );
 });
 
-// Inicializar Servidor
-const PORT = 5000;
+// ================= INICIAR SERVIDOR =================
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`⭐ Servidor InfoEmp corriendo perfectamente en el puerto ${PORT}`);
+    console.log(`⭐ Servidor InfoEmp corriendo en el puerto ${PORT}`);
 });
